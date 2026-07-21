@@ -16,7 +16,7 @@ import { HistoryTable } from './components/HistoryTable';
 import { ClearConfirmModal } from './components/ClearConfirmModal';
 import { BottomNav } from './components/BottomNav';
 import { Toast } from './components/Toast';
-import { PWAInstallModal } from './components/PWAInstallModal';
+import { PWAInstallModal, BeforeInstallPromptEvent } from './components/PWAInstallModal';
 import { Plus, WalletCards, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -29,7 +29,10 @@ export default function App() {
   const [isPWAInstallOpen, setIsPWAInstallOpen] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
-  // Initialize data from LocalStorage & register Service Worker
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
+
+  // Initialize data from LocalStorage & register Service Worker & PWA listeners
   useEffect(() => {
     const loadedAccounts = getStoredAccounts();
     const loadedHistory = getStoredHistory();
@@ -49,6 +52,30 @@ export default function App() {
         );
       });
     }
+
+    // Check standalone mode
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true;
+    setIsInstalled(isStandalone);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   // Calculate total funds dynamically
@@ -127,7 +154,6 @@ export default function App() {
     setAccounts(updated);
     saveStoredAccounts(updated);
     updateTodayHistoryIfExists(updated, history);
-    showToast(`Account renamed to "${newName}"`, 'info');
   };
 
   // 3. Add a new account
@@ -151,23 +177,14 @@ export default function App() {
     setAccounts(updated);
     saveStoredAccounts(updated);
     updateTodayHistoryIfExists(updated, history);
-    showToast(`Added account "${data.name}"`, 'success');
   };
 
   // 4. Delete an account
   const handleDeleteAccount = (id: string) => {
-    const accToDelete = accounts.find((a) => a.id === id);
-    const confirmMessage = accToDelete
-      ? `Are you sure you want to delete "${accToDelete.name}"?`
-      : 'Delete this account?';
-
-    if (window.confirm(confirmMessage)) {
-      const updated = accounts.filter((acc) => acc.id !== id);
-      setAccounts(updated);
-      saveStoredAccounts(updated);
-      updateTodayHistoryIfExists(updated, history);
-      showToast('Account deleted', 'warning');
-    }
+    const updated = accounts.filter((acc) => acc.id !== id);
+    setAccounts(updated);
+    saveStoredAccounts(updated);
+    updateTodayHistoryIfExists(updated, history);
   };
 
   // Drag & Drop Account Reordering State
@@ -209,7 +226,6 @@ export default function App() {
 
     setDraggedIndex(null);
     setDragOverIndex(null);
-    showToast(`Arranged "${movedItem.name}"`, 'info');
   };
 
   const handleDragEnd = () => {
@@ -265,7 +281,6 @@ export default function App() {
   // 5. Save Entry (Snapshot today's balances into History)
   const handleSaveEntry = () => {
     if (accounts.length === 0) {
-      showToast('Please add at least one account first.', 'warning');
       return;
     }
 
@@ -293,7 +308,6 @@ export default function App() {
       };
       setHistory(updatedHistory);
       saveStoredHistory(updatedHistory);
-      showToast("Today's snapshot updated!", 'info');
     } else {
       // Create a single new entry for today
       const maxSerial = history.reduce((max, h) => Math.max(max, h.serialNo || 0), 0);
@@ -311,14 +325,12 @@ export default function App() {
       const updatedHistory = [newEntry, ...history];
       setHistory(updatedHistory);
       saveStoredHistory(updatedHistory);
-      showToast('Snapshot saved to History!', 'success');
     }
   };
 
   // 6. Export History to Excel
   const handleExportExcel = () => {
     exportHistoryToExcel(history, accounts);
-    showToast('Exported history as Excel spreadsheet', 'success');
   };
 
   // 7. Clear All Data
@@ -326,7 +338,6 @@ export default function App() {
     clearAllAppData();
     setAccounts([]);
     setHistory([]);
-    showToast('All accounts and history cleared', 'warning');
   };
 
   // 8. Delete a single history entry
@@ -334,7 +345,6 @@ export default function App() {
     const updatedHistory = history.filter((h) => h.id !== id);
     setHistory(updatedHistory);
     saveStoredHistory(updatedHistory);
-    showToast('History entry deleted', 'info');
   };
 
   const lastHistoryDate = history.length > 0 ? history[0].date : undefined;
@@ -346,6 +356,7 @@ export default function App() {
         totalAccounts={accounts.length}
         lastSavedDate={lastHistoryDate}
         onInstallClick={() => setIsPWAInstallOpen(true)}
+        isInstalled={isInstalled}
       />
 
       {/* Main Container */}
@@ -456,6 +467,8 @@ export default function App() {
         onTabChange={setActiveTab}
         accountsCount={accounts.length}
         historyCount={history.length}
+        onInstallClick={() => setIsPWAInstallOpen(true)}
+        isInstalled={isInstalled}
       />
 
       {/* Add Account Modal */}
@@ -476,6 +489,8 @@ export default function App() {
       <PWAInstallModal
         isOpen={isPWAInstallOpen}
         onClose={() => setIsPWAInstallOpen(false)}
+        deferredPrompt={deferredPrompt}
+        isInstalled={isInstalled}
       />
 
       {/* Toast Messages */}

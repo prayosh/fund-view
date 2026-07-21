@@ -1,22 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Share, PlusSquare, Smartphone, CheckCircle2 } from 'lucide-react';
 
-interface BeforeInstallPromptEvent extends Event {
+export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export const PWAInstallModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
+interface PWAInstallModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  deferredPrompt?: BeforeInstallPromptEvent | null;
+  isInstalled?: boolean;
+}
+
+export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
   isOpen,
   onClose,
+  deferredPrompt: propDeferredPrompt,
+  isInstalled: propIsInstalled = false,
 }) => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [localDeferredPrompt, setLocalDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+
+  const activePrompt = propDeferredPrompt || localDeferredPrompt;
 
   useEffect(() => {
     // Check if running in standalone mode (already installed)
     const isStandalone =
+      propIsInstalled ||
       window.matchMedia('(display-mode: standalone)').matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true;
 
@@ -27,10 +39,10 @@ export const PWAInstallModal: React.FC<{ isOpen: boolean; onClose: () => void }>
     const isIPhoneOrIPad = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIPhoneOrIPad);
 
-    // Listen for install prompt on Android / Chrome / Desktop
+    // Fallback listener if prop not provided
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setLocalDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -38,16 +50,20 @@ export const PWAInstallModal: React.FC<{ isOpen: boolean; onClose: () => void }>
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [propIsInstalled]);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
-        setIsInstalled(true);
+    if (activePrompt) {
+      try {
+        await activePrompt.prompt();
+        const choice = await activePrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          setIsInstalled(true);
+        }
+      } catch (err) {
+        console.warn('Install prompt error:', err);
       }
-      setDeferredPrompt(null);
+      setLocalDeferredPrompt(null);
       onClose();
     }
   };
@@ -68,7 +84,6 @@ export const PWAInstallModal: React.FC<{ isOpen: boolean; onClose: () => void }>
               alt="Fund View Logo"
               className="w-10 h-10 rounded-2xl object-cover border border-zinc-700/60 shadow-md"
               onError={(e) => {
-                // Fallback if logo fails to load
                 (e.target as HTMLElement).style.display = 'none';
               }}
             />
@@ -131,19 +146,14 @@ export const PWAInstallModal: React.FC<{ isOpen: boolean; onClose: () => void }>
             </p>
             <button
               onClick={handleInstallClick}
-              disabled={!deferredPrompt}
-              className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-                deferredPrompt
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30'
-                  : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-              }`}
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 active:scale-95"
             >
               <Download className="w-4 h-4" />
-              <span>{deferredPrompt ? 'Install App Now' : 'Use browser menu to Install'}</span>
+              <span>{activePrompt ? 'Install App Now' : 'Add to Home Screen'}</span>
             </button>
-            {!deferredPrompt && (
+            {!activePrompt && (
               <p className="text-[11px] text-zinc-500 text-center">
-                If the install button is disabled, open your browser options menu (⋮) and tap <strong>Install App</strong> or <strong>Add to Home screen</strong>.
+                If prompted, tap <strong>Install</strong> or use your browser menu (⋮) to select <strong>Add to Home Screen</strong> / <strong>Install App</strong>.
               </p>
             )}
           </div>
@@ -162,3 +172,4 @@ export const PWAInstallModal: React.FC<{ isOpen: boolean; onClose: () => void }>
     </div>
   );
 };
+

@@ -1,13 +1,14 @@
 import React from 'react';
-import { WalletCards, History } from 'lucide-react';
+import { WalletCards, History, Download, Smartphone } from 'lucide-react';
 import { TabType } from '../types';
 
 interface BottomNavProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
-  onAddAccountClick: () => void;
   accountsCount: number;
   historyCount: number;
+  onInstallClick?: () => void;
+  isInstalled?: boolean;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -15,6 +16,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onTabChange,
   accountsCount,
   historyCount,
+  onInstallClick,
+  isInstalled,
 }) => {
   return (
     <>
@@ -25,7 +28,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <button
             id="tab-accounts-btn"
             onClick={() => onTabChange('accounts')}
-            className={`relative flex flex-col items-center justify-center min-w-[90px] py-1 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center min-w-[85px] py-1 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
               activeTab === 'accounts'
                 ? 'text-blue-500 font-bold bg-blue-500/10 border border-blue-500/20'
                 : 'text-zinc-500 hover:text-zinc-300 font-medium'
@@ -44,7 +47,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <button
             id="tab-history-btn"
             onClick={() => onTabChange('history')}
-            className={`relative flex flex-col items-center justify-center min-w-[90px] py-1 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center min-w-[85px] py-1 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
               activeTab === 'history'
                 ? 'text-blue-500 font-bold bg-blue-500/10 border border-blue-500/20'
                 : 'text-zinc-500 hover:text-zinc-300 font-medium'
@@ -58,8 +61,29 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             </div>
             <span className="text-[11px] mt-0.5">History</span>
           </button>
+
+          {/* Tab 3: Install App */}
+          {onInstallClick && (
+            <button
+              id="tab-install-btn"
+              onClick={onInstallClick}
+              className={`relative flex flex-col items-center justify-center min-w-[85px] py-1 px-3 rounded-xl transition-all duration-200 cursor-pointer text-zinc-500 hover:text-blue-400 font-medium`}
+            >
+              <div className="relative">
+                {isInstalled ? (
+                  <Smartphone className="w-4 h-4 text-emerald-400 stroke-[2]" />
+                ) : (
+                  <Download className="w-4 h-4 text-blue-400 stroke-[2.2]" />
+                )}
+              </div>
+              <span className={`text-[11px] mt-0.5 ${isInstalled ? 'text-emerald-400' : 'text-blue-400 font-semibold'}`}>
+                {isInstalled ? 'App' : 'Install'}
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </>
   );
 };
+
