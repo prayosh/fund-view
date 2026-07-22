@@ -477,16 +477,16 @@ export default function App() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <WalletCards className="w-4 h-4 text-blue-400" />
-                  <h2 className="text-base font-bold text-zinc-200">Your Accounts</h2>
-                  <span className="text-xs text-zinc-500 font-mono">
+                  <WalletCards className="w-4 h-4 text-sky-400" />
+                  <h2 className="text-base font-extrabold tracking-wide text-sky-400">Your Accounts</h2>
+                  <span className="text-xs text-sky-500/80 font-mono font-bold">
                     ({accounts.length})
                   </span>
                 </div>
                 <button
                   id="add-account-header-btn"
                   onClick={() => setIsAddAccountOpen(true)}
-                  className="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-blue-400 border border-zinc-800 hover:border-blue-500/40 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer"
+                  className="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-sky-400 border border-zinc-800 hover:border-sky-500/40 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>New Account</span>
@@ -528,20 +528,33 @@ export default function App() {
                             <div
                               className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                               style={{
-                                backgroundColor: `${group.meta.color}15`,
-                                border: `1px solid ${group.meta.color}35`,
+                                backgroundColor: `${group.meta.color}20`,
+                                border: `1px solid ${group.meta.color}45`,
                               }}
                             >
                               <Icon className="w-3.5 h-3.5" style={{ color: group.meta.color }} />
                             </div>
-                            <h3 className="text-sm font-bold text-zinc-200">
+                            <h3
+                              className="text-sm font-bold tracking-tight"
+                              style={{ color: group.meta.color }}
+                            >
                               {group.meta.label}
                             </h3>
-                            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md">
+                            <span
+                              className="text-[11px] font-mono px-2 py-0.5 rounded-md border font-medium"
+                              style={{
+                                color: group.meta.color,
+                                backgroundColor: `${group.meta.color}12`,
+                                borderColor: `${group.meta.color}30`,
+                              }}
+                            >
                               {group.items.length} {group.items.length === 1 ? 'account' : 'accounts'}
                             </span>
                           </div>
-                          <div className="text-xs sm:text-sm font-mono font-bold text-zinc-300">
+                          <div
+                            className="text-xs sm:text-sm font-mono font-bold"
+                            style={{ color: group.meta.color }}
+                          >
                             {formatCurrency(group.subtotal)}
                           </div>
                         </div>
@@ -583,9 +596,11 @@ export default function App() {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                  <span>Fund Log History</span>
-                  <Sparkles className="w-4 h-4 text-blue-400" />
+                <h2 className="text-xl font-bold flex items-center space-x-2">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-300 to-indigo-400">
+                    Fund Log History
+                  </span>
+                  <Sparkles className="w-4 h-4 text-purple-400" />
                 </h2>
               </div>
             </div>
