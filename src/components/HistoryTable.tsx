@@ -144,13 +144,13 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
             <table className="w-full text-left border-collapse font-mono text-xs">
               {/* Spreadsheet Table Header */}
               <thead>
-                <tr className="bg-zinc-900/80 text-zinc-500 border-b border-zinc-800 font-bold uppercase tracking-widest text-[10px]">
-                  <th className="py-4 px-6 font-mono text-center w-16 border-r border-zinc-800/60">
+                <tr className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800 font-bold uppercase tracking-widest text-[10px]">
+                  <th className="py-4 px-6 font-mono text-center w-16 border-r border-zinc-800/60 text-purple-400">
                     S.No
                   </th>
-                  <th className="py-4 px-6 min-w-[160px] border-r border-zinc-800/60">
+                  <th className="py-4 px-6 min-w-[160px] border-r border-zinc-800/60 text-sky-400">
                     <div className="flex items-center space-x-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                      <Calendar className="w-3.5 h-3.5 text-sky-400" />
                       <span>Date & Time</span>
                     </div>
                   </th>
@@ -168,12 +168,12 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                   ))}
 
                   {/* Total Funds Column */}
-                  <th className="py-4 px-6 min-w-[140px] text-right font-bold text-blue-400 border-r border-zinc-800/60 bg-blue-950/20">
+                  <th className="py-4 px-6 min-w-[140px] text-right font-extrabold text-emerald-400 border-r border-zinc-800/60 bg-emerald-950/25">
                     Total Funds
                   </th>
 
                   {/* Action Column */}
-                  <th className="py-4 px-3 text-center w-12">Action</th>
+                  <th className="py-4 px-3 text-center w-12 text-zinc-500">Action</th>
                 </tr>
               </thead>
 
@@ -220,7 +220,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                       })}
 
                       {/* Total Funds Snapshot */}
-                      <td className="py-3.5 px-6 text-right font-bold text-blue-400 bg-blue-500/5 border-r border-zinc-800/60 whitespace-nowrap">
+                      <td className="py-3.5 px-6 text-right font-extrabold text-emerald-400 bg-emerald-500/10 border-r border-zinc-800/60 whitespace-nowrap">
                         {formatCurrency(entry.total || 0)}
                       </td>
 
