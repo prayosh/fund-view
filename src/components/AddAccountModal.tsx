@@ -18,7 +18,7 @@ const CATEGORIES = [
   { id: 'Cash', label: 'Cash in Hand', icon: Wallet, color: '#10b981' },
   { id: 'Wallet', label: 'UPI / Wallet', icon: CreditCard, color: '#8b5cf6' },
   { id: 'Credit Card', label: 'Credit Card', icon: CreditCard, color: '#f43f5e' },
-  { id: 'Investment', label: 'Coins / Investment', icon: Coins, color: '#f59e0b' },
+  { id: 'Investment', label: 'Investment', icon: Coins, color: '#f59e0b' },
 ];
 
 const PRESET_COLORS = [
