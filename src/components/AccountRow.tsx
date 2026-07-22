@@ -51,6 +51,7 @@ export const AccountRow: React.FC<AccountRowProps> = ({
   const [nameValue, setNameValue] = useState(account.name);
   const [inputValue, setInputValue] = useState(account.balance.toString());
   const [isFocused, setIsFocused] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync internal input when account balance updates from outside
@@ -116,6 +117,9 @@ export const AccountRow: React.FC<AccountRowProps> = ({
   // Icon based on category or name
   const getCategoryIcon = () => {
     const cat = (account.category || account.name).toLowerCase();
+    if (cat.includes('credit card') || cat.includes('credit')) {
+      return <CreditCard className="w-5 h-5 text-rose-400" />;
+    }
     if (cat.includes('bank') || cat.includes('sbi') || cat.includes('hdfc') || cat.includes('icici')) {
       return <Landmark className="w-5 h-5 text-blue-400" />;
     }
@@ -132,6 +136,7 @@ export const AccountRow: React.FC<AccountRowProps> = ({
     <div
       id={`account-card-${account.id}`}
       data-account-index={index}
+      data-account-category={account.category || 'Bank'}
       draggable
       onDragStart={(e) => onDragStart && onDragStart(e, index)}
       onDragOver={(e) => onDragOver && onDragOver(e, index)}
@@ -141,11 +146,20 @@ export const AccountRow: React.FC<AccountRowProps> = ({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchEndOrMove}
       onTouchEnd={handleTouchEndOrMove}
-      className={`group relative bg-zinc-900 border rounded-2xl p-3.5 sm:p-4 transition-all duration-200 shadow-md select-none ${
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('input') || target.closest('button')) {
+          return;
+        }
+        setShowMobileActions((prev) => !prev);
+      }}
+      className={`group relative bg-zinc-900 border rounded-2xl p-3.5 sm:p-4 transition-all duration-200 shadow-md select-none cursor-pointer ${
         isDragging
           ? 'opacity-40 border-dashed border-blue-500/60 bg-blue-500/5 scale-[0.98]'
           : isDragOver
           ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 scale-[1.01] shadow-blue-500/10'
+          : showMobileActions
+          ? 'border-blue-500/50 bg-zinc-900 ring-1 ring-blue-500/20'
           : 'border-zinc-800 hover:border-zinc-700'
       }`}
     >
@@ -174,6 +188,7 @@ export const AccountRow: React.FC<AccountRowProps> = ({
                   className="bg-zinc-950 border border-blue-500/60 rounded-lg px-2.5 py-1 text-sm text-white font-medium focus:outline-none w-full max-w-[140px] sm:max-w-[180px]"
                 />
                 <button
+                  type="button"
                   onClick={handleNameSave}
                   className="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
                   title="Save Name"
@@ -181,6 +196,7 @@ export const AccountRow: React.FC<AccountRowProps> = ({
                   <Check className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setNameValue(account.name);
                     setIsEditingName(false);
@@ -197,8 +213,16 @@ export const AccountRow: React.FC<AccountRowProps> = ({
                   {account.name}
                 </h3>
                 <button
-                  onClick={() => setIsEditingName(true)}
-                  className="p-1 text-zinc-500 hover:text-zinc-300 opacity-80 sm:opacity-0 sm:group-hover/title:opacity-100 transition-opacity rounded-md hover:bg-zinc-800"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingName(true);
+                  }}
+                  className={`p-1 text-zinc-500 hover:text-zinc-300 transition-all rounded-md hover:bg-zinc-800 ${
+                    showMobileActions
+                      ? 'inline-flex opacity-100 text-blue-400'
+                      : 'hidden sm:inline-flex sm:opacity-0 sm:group-hover/title:opacity-100'
+                  }`}
                   title="Edit account name"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -234,8 +258,13 @@ export const AccountRow: React.FC<AccountRowProps> = ({
           {/* Delete Account Button */}
           <button
             type="button"
-            onClick={() => onDeleteAccount(account.id)}
-            className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer shrink-0 min-w-[36px] min-h-[36px] sm:min-w-[42px] sm:min-h-[42px] flex items-center justify-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteAccount(account.id);
+            }}
+            className={`p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer shrink-0 min-w-[36px] min-h-[36px] sm:min-w-[42px] sm:min-h-[42px] items-center justify-center ${
+              showMobileActions ? 'flex text-rose-400 bg-rose-500/10' : 'hidden sm:flex'
+            }`}
             title="Delete Account"
           >
             <Trash2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />

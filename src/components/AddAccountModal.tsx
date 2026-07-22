@@ -17,6 +17,7 @@ const CATEGORIES = [
   { id: 'Bank', label: 'Bank Account', icon: Landmark, color: '#3b82f6' },
   { id: 'Cash', label: 'Cash in Hand', icon: Wallet, color: '#10b981' },
   { id: 'Wallet', label: 'UPI / Wallet', icon: CreditCard, color: '#8b5cf6' },
+  { id: 'Credit Card', label: 'Credit Card', icon: CreditCard, color: '#f43f5e' },
   { id: 'Investment', label: 'Coins / Investment', icon: Coins, color: '#f59e0b' },
 ];
 
@@ -25,8 +26,8 @@ const PRESET_COLORS = [
   '#3b82f6', // blue
   '#6366f1', // indigo
   '#8b5cf6', // purple
+  '#f43f5e', // rose
   '#f59e0b', // amber
-  '#ec4899', // pink
   '#06b6d4', // cyan
 ];
 

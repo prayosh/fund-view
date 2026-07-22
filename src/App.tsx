@@ -17,7 +17,22 @@ import { ClearConfirmModal } from './components/ClearConfirmModal';
 import { BottomNav } from './components/BottomNav';
 import { Toast } from './components/Toast';
 import { PWAInstallModal, BeforeInstallPromptEvent } from './components/PWAInstallModal';
-import { Plus, WalletCards, Sparkles } from 'lucide-react';
+import { Plus, WalletCards, Sparkles, Landmark, Wallet, CreditCard, Coins } from 'lucide-react';
+import { formatCurrency } from './utils/formatters';
+
+const CATEGORY_ORDER = ['Bank', 'Cash', 'Wallet', 'Credit Card', 'Investment'];
+
+const CATEGORY_META: Record<
+  string,
+  { label: string; icon: React.FC<{ className?: string; style?: React.CSSProperties }>; color: string }
+> = {
+  Bank: { label: 'Bank Accounts', icon: Landmark, color: '#3b82f6' },
+  Cash: { label: 'Cash in Hand', icon: Wallet, color: '#10b981' },
+  Wallet: { label: 'UPI / Wallets', icon: CreditCard, color: '#8b5cf6' },
+  'Credit Card': { label: 'Credit Cards', icon: CreditCard, color: '#f43f5e' },
+  Investment: { label: 'Coins & Investments', icon: Coins, color: '#f59e0b' },
+  Other: { label: 'Other Accounts', icon: Landmark, color: '#a1a1aa' },
+};
 
 export default function App() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -41,8 +56,8 @@ export default function App() {
 
     // Register Service Worker for Progressive Web App capabilities
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(
+      const registerSW = () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(
           (registration) => {
             console.log('PWA ServiceWorker registered with scope:', registration.scope);
           },
@@ -50,7 +65,13 @@ export default function App() {
             console.warn('PWA ServiceWorker registration failed:', err);
           }
         );
-      });
+      };
+
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        registerSW();
+      } else {
+        window.addEventListener('load', registerSW);
+      }
     }
 
     // Check standalone mode
@@ -187,20 +208,113 @@ export default function App() {
     updateTodayHistoryIfExists(updated, history);
   };
 
-  // Drag & Drop Account Reordering State
+  // Group accounts by category in canonical order
+  const groupedAccounts = useMemo(() => {
+    const categoryMap = new Map<string, { account: Account; globalIndex: number }[]>();
+
+    accounts.forEach((acc, globalIndex) => {
+      let catKey = acc.category || 'Bank';
+      if (!CATEGORY_META[catKey]) {
+        catKey = 'Other';
+      }
+      if (!categoryMap.has(catKey)) {
+        categoryMap.set(catKey, []);
+      }
+      categoryMap.get(catKey)!.push({ account: acc, globalIndex });
+    });
+
+    const categoriesInOrder = [
+      ...CATEGORY_ORDER,
+      ...Array.from(categoryMap.keys()).filter((k) => !CATEGORY_ORDER.includes(k)),
+    ];
+
+    const groups: {
+      categoryKey: string;
+      meta: { label: string; icon: React.FC<{ className?: string; style?: React.CSSProperties }>; color: string };
+      items: { account: Account; globalIndex: number }[];
+      subtotal: number;
+    }[] = [];
+
+    categoriesInOrder.forEach((catKey) => {
+      const items = categoryMap.get(catKey);
+      if (items && items.length > 0) {
+        const subtotal = items.reduce((sum, item) => sum + item.account.balance, 0);
+        groups.push({
+          categoryKey: catKey,
+          meta: CATEGORY_META[catKey] || CATEGORY_META.Other,
+          items,
+          subtotal,
+        });
+      }
+    });
+
+    return groups;
+  }, [accounts]);
+
+  // Drag & Drop Account Reordering State (Strictly within Category)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    setDraggedIndex(index);
+  const reorderCategoryAccounts = (fromGlobalIdx: number, toGlobalIdx: number) => {
+    const fromAcc = accounts[fromGlobalIdx];
+    const toAcc = accounts[toGlobalIdx];
+    if (!fromAcc || !toAcc) return;
+
+    const fromCat = fromAcc.category || 'Bank';
+    const toCat = toAcc.category || 'Bank';
+    if (fromCat !== toCat) return; // Prevent reordering across different categories
+
+    // Find all global indices in this category
+    const catIndices: number[] = [];
+    accounts.forEach((acc, i) => {
+      const accCat = acc.category || 'Bank';
+      if (accCat === fromCat) {
+        catIndices.push(i);
+      }
+    });
+
+    const fromCatSubIdx = catIndices.indexOf(fromGlobalIdx);
+    const toCatSubIdx = catIndices.indexOf(toGlobalIdx);
+
+    if (fromCatSubIdx === -1 || toCatSubIdx === -1 || fromCatSubIdx === toCatSubIdx) return;
+
+    const catAccounts = catIndices.map((i) => accounts[i]);
+    const [movedItem] = catAccounts.splice(fromCatSubIdx, 1);
+    catAccounts.splice(toCatSubIdx, 0, movedItem);
+
+    const updated = [...accounts];
+    catIndices.forEach((globalIdx, idx) => {
+      updated[globalIdx] = catAccounts[idx];
+    });
+
+    setAccounts(updated);
+    saveStoredAccounts(updated);
+    updateTodayHistoryIfExists(updated, history);
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, globalIndex: number) => {
+    setDraggedIndex(globalIndex);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, targetGlobalIndex: number) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverIndex !== index) {
-      setDragOverIndex(index);
+    if (draggedIndex === null) return;
+
+    const draggedCat = accounts[draggedIndex]?.category || 'Bank';
+    const targetCat = accounts[targetGlobalIndex]?.category || 'Bank';
+
+    if (draggedCat === targetCat) {
+      e.dataTransfer.dropEffect = 'move';
+      if (dragOverIndex !== targetGlobalIndex) {
+        setDragOverIndex(targetGlobalIndex);
+      }
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+      if (dragOverIndex !== null) {
+        setDragOverIndex(null);
+      }
     }
   };
 
@@ -208,22 +322,11 @@ export default function App() {
     // leave handled
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropGlobalIndex: number) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === dropIndex) {
-      setDraggedIndex(null);
-      setDragOverIndex(null);
-      return;
+    if (draggedIndex !== null && draggedIndex !== dropGlobalIndex) {
+      reorderCategoryAccounts(draggedIndex, dropGlobalIndex);
     }
-
-    const updated = [...accounts];
-    const [movedItem] = updated.splice(draggedIndex, 1);
-    updated.splice(dropIndex, 0, movedItem);
-
-    setAccounts(updated);
-    saveStoredAccounts(updated);
-    updateTodayHistoryIfExists(updated, history);
-
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -233,23 +336,13 @@ export default function App() {
     setDragOverIndex(null);
   };
 
-  const handleMoveAccount = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= accounts.length) return;
-    const updated = [...accounts];
-    const [movedItem] = updated.splice(fromIndex, 1);
-    updated.splice(toIndex, 0, movedItem);
-
-    setAccounts(updated);
-    saveStoredAccounts(updated);
-    updateTodayHistoryIfExists(updated, history);
+  const handleMoveAccount = (fromGlobalIdx: number, toGlobalIdx: number) => {
+    reorderCategoryAccounts(fromGlobalIdx, toGlobalIdx);
   };
 
-  // Mobile Touch Reordering Support
-  const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
-
-  const handleTouchStartDrag = (e: React.TouchEvent<HTMLDivElement>, index: number) => {
-    setTouchStartIndex(index);
-    setDraggedIndex(index);
+  const handleTouchStartDrag = (e: React.TouchEvent<HTMLDivElement>, globalIndex: number) => {
+    setTouchStartIndex(globalIndex);
+    setDraggedIndex(globalIndex);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -262,16 +355,26 @@ export default function App() {
       const idxStr = cardEl.getAttribute('data-account-index');
       if (idxStr !== null) {
         const hoverIdx = parseInt(idxStr, 10);
-        if (!isNaN(hoverIdx) && hoverIdx !== dragOverIndex) {
-          setDragOverIndex(hoverIdx);
+        if (!isNaN(hoverIdx)) {
+          const touchCat = accounts[touchStartIndex]?.category || 'Bank';
+          const hoverCat = accounts[hoverIdx]?.category || 'Bank';
+          if (touchCat === hoverCat && hoverIdx !== dragOverIndex) {
+            setDragOverIndex(hoverIdx);
+          } else if (touchCat !== hoverCat && dragOverIndex !== null) {
+            setDragOverIndex(null);
+          }
         }
       }
     }
   };
 
   const handleTouchEnd = () => {
-    if (touchStartIndex !== null && dragOverIndex !== null && touchStartIndex !== dragOverIndex) {
-      handleMoveAccount(touchStartIndex, dragOverIndex);
+    if (
+      touchStartIndex !== null &&
+      dragOverIndex !== null &&
+      touchStartIndex !== dragOverIndex
+    ) {
+      reorderCategoryAccounts(touchStartIndex, dragOverIndex);
     }
     setTouchStartIndex(null);
     setDraggedIndex(null);
@@ -355,8 +458,6 @@ export default function App() {
       <Header
         totalAccounts={accounts.length}
         lastSavedDate={lastHistoryDate}
-        onInstallClick={() => setIsPWAInstallOpen(true)}
-        isInstalled={isInstalled}
       />
 
       {/* Main Container */}
@@ -408,30 +509,69 @@ export default function App() {
                 </div>
               ) : (
                 <div
-                  className="space-y-3"
+                  className="space-y-6"
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                 >
-                  {accounts.map((account, idx) => (
-                    <AccountRow
-                      key={account.id}
-                      account={account}
-                      index={idx}
-                      totalAccounts={accounts.length}
-                      onUpdateBalance={handleUpdateAccountBalance}
-                      onUpdateName={handleUpdateAccountName}
-                      onDeleteAccount={handleDeleteAccount}
-                      onMoveAccount={handleMoveAccount}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onDragEnd={handleDragEnd}
-                      isDragging={draggedIndex === idx}
-                      isDragOver={dragOverIndex === idx && draggedIndex !== idx}
-                      onTouchStartDrag={handleTouchStartDrag}
-                    />
-                  ))}
+                  {groupedAccounts.map((group, groupIdx) => {
+                    const Icon = group.meta.icon;
+                    return (
+                      <div key={group.categoryKey} className="space-y-3">
+                        {/* Thin separator line between categories */}
+                        {groupIdx > 0 && (
+                          <div className="pt-2 border-t border-zinc-800/80" />
+                        )}
+
+                        {/* Category Header */}
+                        <div className="flex items-center justify-between px-0.5 pb-0.5">
+                          <div className="flex items-center space-x-2.5">
+                            <div
+                              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                              style={{
+                                backgroundColor: `${group.meta.color}15`,
+                                border: `1px solid ${group.meta.color}35`,
+                              }}
+                            >
+                              <Icon className="w-3.5 h-3.5" style={{ color: group.meta.color }} />
+                            </div>
+                            <h3 className="text-sm font-bold text-zinc-200">
+                              {group.meta.label}
+                            </h3>
+                            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md">
+                              {group.items.length} {group.items.length === 1 ? 'account' : 'accounts'}
+                            </span>
+                          </div>
+                          <div className="text-xs sm:text-sm font-mono font-bold text-zinc-300">
+                            {formatCurrency(group.subtotal)}
+                          </div>
+                        </div>
+
+                        {/* Accounts list for this category */}
+                        <div className="space-y-3 pt-1">
+                          {group.items.map(({ account, globalIndex }) => (
+                            <AccountRow
+                              key={account.id}
+                              account={account}
+                              index={globalIndex}
+                              totalAccounts={accounts.length}
+                              onUpdateBalance={handleUpdateAccountBalance}
+                              onUpdateName={handleUpdateAccountName}
+                              onDeleteAccount={handleDeleteAccount}
+                              onMoveAccount={handleMoveAccount}
+                              onDragStart={handleDragStart}
+                              onDragOver={handleDragOver}
+                              onDragLeave={handleDragLeave}
+                              onDrop={handleDrop}
+                              onDragEnd={handleDragEnd}
+                              isDragging={draggedIndex === globalIndex}
+                              isDragOver={dragOverIndex === globalIndex && draggedIndex !== globalIndex}
+                              onTouchStartDrag={handleTouchStartDrag}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -467,8 +607,6 @@ export default function App() {
         onTabChange={setActiveTab}
         accountsCount={accounts.length}
         historyCount={history.length}
-        onInstallClick={() => setIsPWAInstallOpen(true)}
-        isInstalled={isInstalled}
       />
 
       {/* Add Account Modal */}
