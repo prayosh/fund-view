@@ -5,15 +5,13 @@ import { TabType } from '../types';
 interface BottomNavProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
-  accountsCount: number;
-  historyCount: number;
+  accountsCount?: number;
+  historyCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
-  accountsCount,
-  historyCount,
 }) => {
   return (
     <>
@@ -32,9 +30,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           >
             <div className="relative">
               <WalletCards className={`w-4 h-4 ${activeTab === 'accounts' ? 'stroke-[2.5]' : ''}`} />
-              <span className="absolute -top-1 -right-2.5 px-1 py-0 text-[9px] font-mono font-bold bg-zinc-800 text-zinc-300 rounded-full border border-zinc-700">
-                {accountsCount}
-              </span>
             </div>
             <span className="text-[11px] mt-0.5">Accounts</span>
           </button>
@@ -51,9 +46,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           >
             <div className="relative">
               <History className={`w-4 h-4 ${activeTab === 'history' ? 'stroke-[2.5]' : ''}`} />
-              <span className="absolute -top-1 -right-2.5 px-1 py-0 text-[9px] font-mono font-bold bg-zinc-800 text-zinc-300 rounded-full border border-zinc-700">
-                {historyCount}
-              </span>
             </div>
             <span className="text-[11px] mt-0.5">History</span>
           </button>
