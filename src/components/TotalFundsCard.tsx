@@ -30,15 +30,15 @@ export const TotalFundsCard: React.FC<TotalFundsCardProps> = ({
       <div className="relative z-10 flex items-center justify-between gap-3">
         {/* Total Funds Display */}
         <div className="space-y-1">
-          <div className="flex items-center space-x-2 text-[11px] uppercase tracking-wider font-semibold text-zinc-500">
-            <span className="p-1 rounded-md bg-blue-500/10 text-blue-400">
+          <div className="flex items-center space-x-2 text-[11px] uppercase tracking-wider font-bold text-emerald-400/90">
+            <span className="p-1 rounded-md bg-emerald-500/15 text-emerald-400">
               <TrendingUp className="w-3 h-3" />
             </span>
             <span>Total Funds</span>
           </div>
 
-          <div className="text-2xl sm:text-3xl font-bold tracking-tighter text-white font-mono drop-shadow-sm flex items-baseline gap-2 overflow-x-auto scrollbar-none">
-            <span className="whitespace-nowrap">{formatCurrency(totalFunds)}</span>
+          <div className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-emerald-400 font-mono drop-shadow-[0_0_12px_rgba(16,185,129,0.2)] flex items-baseline gap-2 overflow-x-auto scrollbar-none">
+            <span className="whitespace-nowrap text-emerald-400">{formatCurrency(totalFunds)}</span>
           </div>
         </div>
 
