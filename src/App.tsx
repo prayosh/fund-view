@@ -30,7 +30,7 @@ const CATEGORY_META: Record<
   Cash: { label: 'Cash in Hand', icon: Wallet, color: '#10b981' },
   Wallet: { label: 'UPI / Wallets', icon: CreditCard, color: '#8b5cf6' },
   'Credit Card': { label: 'Credit Cards', icon: CreditCard, color: '#f43f5e' },
-  Investment: { label: 'Coins & Investments', icon: Coins, color: '#f59e0b' },
+  Investment: { label: 'Investment', icon: Coins, color: '#f59e0b' },
   Other: { label: 'Other Accounts', icon: Landmark, color: '#a1a1aa' },
 };
 
