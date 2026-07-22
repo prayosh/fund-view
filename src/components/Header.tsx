@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = () => {
             <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-[#09090b] animate-pulse" />
           </div>
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-semibold tracking-tight text-zinc-100">
+            <h1 className="text-base font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400">
               Fund View
             </h1>
           </div>
